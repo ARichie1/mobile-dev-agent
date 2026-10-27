@@ -1,3 +1,7 @@
+# Imported legacy working ledger
+
+Imported on 2026-10-26. Original notes below are historical claims, not verification rerun at this checkpoint.
+
 # Mobile Dev Agent
 
 ## Technical Change Ledger

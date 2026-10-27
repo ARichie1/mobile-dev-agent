@@ -1,11 +1,11 @@
 
+import type { ProcessOptions } from "./CodexProcess.js";
 import { homedir } from "node:os";
 
-export interface CodexConfig {
+export interface CodexConfig extends ProcessOptions {
   executable: string;
   workingDirectory: string;
   environment?: NodeJS.ProcessEnv;
-  timeout?: number;
 }
 
 export const defaultCodexConfig: CodexConfig = {

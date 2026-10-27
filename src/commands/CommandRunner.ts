@@ -1,56 +1,30 @@
+import { runProcess, type ProcessOptions } from '../codex/CodexProcess.js';
 
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
-
-export interface CommandOptions {
+export interface CommandOptions extends ProcessOptions {
   cwd?: string;
   env?: NodeJS.ProcessEnv;
-  timeout?: number;
 }
 
 export interface CommandResult {
   stdout: string;
   stderr: string;
   exitCode: number;
+  timedOut: boolean;
+  signal: NodeJS.Signals | null;
 }
 
 export class CommandRunner {
-  async run(
-    command: string,
-    args: string[] = [],
-    options: CommandOptions = {}
-  ): Promise<CommandResult> {
+  async run(command: string, args: string[] = [], options: CommandOptions = {}): Promise<CommandResult> {
     try {
-      const result = await execFileAsync(command, args, {
-        cwd: options.cwd,
-        env: options.env,
-        timeout: options.timeout
-      });
-
-      return {
-        stdout: result.stdout,
-        stderr: result.stderr,
-        exitCode: 0
-      };
+      const result = await runProcess(command, args, options);
+      return { ...result, exitCode: result.exitCode ?? 1 };
     } catch (error) {
-      const commandError = error as {
-        stdout?: string;
-        stderr?: string;
-        code?: number | string;
-        message?: string;
-      };
-
-      const exitCode =
-        typeof commandError.code === 'number'
-          ? commandError.code
-          : 1;
-
+      // Preserve the CommandRunner convention of returning launch failures.
+      const failure = error as NodeJS.ErrnoException;
+      if (!failure?.code) throw error;
       return {
-        stdout: commandError.stdout ?? '',
-        stderr: commandError.stderr ?? commandError.message ?? '',
-        exitCode
+        stdout: '', stderr: failure.message, exitCode: 1,
+        timedOut: false, signal: null,
       };
     }
   }

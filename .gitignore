@@ -6,3 +6,7 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+
+# Packed local build artifacts
+*.tgz
+.mda/

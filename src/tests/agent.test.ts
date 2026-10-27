@@ -55,9 +55,15 @@ describe('Agent ↔ CodexClient integration', () => {
 
     expect(codex.execute).toHaveBeenCalledWith([
       'exec',
-      '--skip-git-repo-check',
+      '--sandbox',
+      'workspace-write',
+      '--model',
+      'test-model',
       '--cd',
       '/tmp/test-workspace',
+      '--config',
+      'developer_instructions="Test instructions"',
+      '--',
       'Explain this project.'
     ]);
 
@@ -89,4 +95,31 @@ describe('Agent ↔ CodexClient integration', () => {
 
     expect(codex.execute).not.toHaveBeenCalled();
   });
+  it('opts into Git-check skipping and forwards execution options and failure results', async () => {
+    const failure = { stdout: '', stderr: 'failed', exitCode: 42, timedOut: false, signal: null };
+    const codex = { execute: vi.fn().mockResolvedValue(failure) };
+    const context = { workspace: { path: '/tmp/workspace' }, codex } as unknown as AgentContext;
+    const instructions = 'Use "quotes"\nthen a second line';
+    const agent = new Agent({ ...config, instructions, skipGitRepoCheck: true }, context);
+    const options = { signal: new AbortController().signal, timeout: 10, onStdout: vi.fn() };
+    expect(await agent.run('--a prompt', options)).toBe(failure);
+    const [args, forwarded] = codex.execute.mock.calls[0]!;
+    expect(args).toContain('--skip-git-repo-check');
+    expect(args).toContain(`developer_instructions=${JSON.stringify(instructions)}`);
+    expect(args.slice(-2)).toEqual(['--', '--a prompt']);
+    expect(forwarded).toBe(options);
+  });
+
+  it('omits unset instructions and Git-check bypass by default', async () => {
+    const codex = { execute: vi.fn() };
+    const context = { workspace: { path: '/tmp/workspace' }, codex } as unknown as AgentContext;
+    await new Agent({ name: 'minimal', model: 'chosen-model' }, context).run('task');
+    const args = codex.execute.mock.calls[0]![0];
+    expect(args).not.toContain('--config');
+    expect(args).not.toContain('--skip-git-repo-check');
+    expect(args).not.toContain('--dangerously-bypass-approvals-and-sandbox');
+    expect(args).toContain('workspace-write');
+    expect(args).toContain('chosen-model');
+  });
+
 });

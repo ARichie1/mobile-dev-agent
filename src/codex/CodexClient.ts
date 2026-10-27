@@ -1,5 +1,5 @@
 
-import { CodexProcess } from "./CodexProcess.js";
+import { CodexProcess, type ProcessOptions } from "./CodexProcess.js";
 import {
   defaultCodexConfig,
   type CodexConfig,
@@ -12,8 +12,8 @@ export class CodexClient {
     this.process = new CodexProcess(config);
   }
 
-  async execute(args: string[] = []) {
-    return this.process.execute(args);
+  async execute(args: string[] = [], options?: ProcessOptions) {
+    return this.process.execute(args, options);
   }
 
   async getVersion(): Promise<string> {
